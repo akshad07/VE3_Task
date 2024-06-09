@@ -1,3 +1,8 @@
+
+import matplotlib
+matplotlib.use('Agg')
+import logging
+logger = logging.getLogger(__name__)
 from django.views.generic import DetailView, CreateView
 from django.shortcuts import redirect
 import os
@@ -10,7 +15,10 @@ from django.utils import timezone
 from .forms import CSVFileForm
 from .models import CSVFile
 from django.urls import reverse, reverse_lazy
+from django.contrib import messages
 
+
+from django.contrib import messages
 
 class UploadCSVView(CreateView):
     """
@@ -22,6 +30,11 @@ class UploadCSVView(CreateView):
     success_url = reverse_lazy('analysis:upload_csv')
 
     def form_valid(self, form):
+        uploaded_file = self.request.FILES.get('file')
+        if not uploaded_file.name.endswith('.csv'):
+            messages.error(self.request, 'Please upload a CSV file.')
+            return redirect('analysis:upload_csv')
+
         csv_file = form.save()
         return redirect(reverse('analysis:analyze_csv', kwargs={'pk': csv_file.id}))
 
@@ -53,21 +66,30 @@ class AnalyzeCSVView(DetailView):
             # Handle missing values
             context['missing_values'] = self.style_table(data.isnull().sum().to_frame(name='Missing Values').to_html(classes='styled-table'))
 
-            # Additional statistics
-            context['mean_values'] = self.style_table(data.mean().to_frame(name='Mean').to_html(classes='styled-table'))
-            context['median_values'] = self.style_table(data.median().to_frame(name='Median').to_html(classes='styled-table'))
-            context['std_dev_values'] = self.style_table(data.std().to_frame(name='Standard Deviation').to_html(classes='styled-table'))
+                    
+            # Assuming 'data' is your DataFrame
+            data_numeric = data.apply(pd.to_numeric, errors='coerce')
+            data_numeric.dropna(inplace=True)
 
+            # Additional statistics
+            context['mean_values'] = self.style_table(data_numeric.mean().to_frame(name='Mean').to_html(classes='styled-table'))
+            context['median_values'] = self.style_table(data_numeric.median().to_frame(name='Median').to_html(classes='styled-table'))
+            context['std_dev_values'] = self.style_table(data_numeric.std().to_frame(name='Standard Deviation').to_html(classes='styled-table'))
+            
             # Data Visualization
             histograms = {}
             for column in data.select_dtypes(include=[np.number]).columns:
-                plt.figure()
-                sns.histplot(data[column], kde=True)
-                img_path = os.path.join(settings.MEDIA_ROOT, f'histogram_{column}.png')
-                plt.savefig(img_path)
-                plt.close()  # Close the plot to avoid memory issues
-                histograms[column] = f'{settings.MEDIA_URL}histogram_{column}.png'
-            
+                try:
+                    plt.figure()
+                    sns.histplot(data[column], kde=True)
+                    img_path = os.path.join(settings.MEDIA_ROOT, f'histogram_{column}.png')
+                    plt.savefig(img_path)
+                    plt.close()  # Close the plot to avoid memory issues
+                    histograms[column] = f'{settings.MEDIA_URL}histogram_{column}.png'
+                except Exception as e:
+                    logger.error(f"Error generating histogram for column {column}: {e}")
+                    continue
+
             context['histograms'] = histograms
 
             # Schedule deletion after 10 minutes
@@ -78,7 +100,7 @@ class AnalyzeCSVView(DetailView):
             return context
         except FileNotFoundError:
             return redirect('analysis:upload_csv')
-
+        
     def style_table(self, table_html):
         """
         Style HTML tables with CSS.
