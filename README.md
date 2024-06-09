@@ -10,6 +10,7 @@ This is a Django-based web application that allows users to upload CSV files, pe
 1. Clone the repository:
     ```sh
     git clone <repository-url>
+    cd VE3_Task
     cd csv_analysis_project
     ```
 
@@ -26,26 +27,41 @@ This is a Django-based web application that allows users to upload CSV files, pe
 
 4. Apply the migrations:
     ```sh
-    python manage.py makemigrations
-    python manage.py migrate
+    python manage.py makemigrations or py manage.py makemigrations
+    python manage.py migrate or py manage.py migrate
     ```
 
 5. Start the development server:
     ```sh
-    python manage.py runserver
+    python manage.py runserver or py manage.py runserver
     ```
 
 6. Open a web browser and navigate to `http://127.0.0.1:8000/analysis/upload/` to upload a CSV file and view the analysis results.
 
 ## Project Explanation
 
-This application allows users to upload CSV files and performs the following data analysis tasks:
-- Displaying the first few rows of the data.
-- Calculating summary statistics (mean, median, standard deviation) for numerical columns.
-- Identifying and handling missing values.
-- Generating histograms for numerical columns using matplotlib and seaborn.
+This Django project allows users to upload CSV files, analyze them, and visualize the data. It provides the following main features:
+
+- Upload CSV Files: Users can upload CSV files using a form.
+
+- Data Analysis: The uploaded CSV file is analyzed to provide summary statistics such as mean, median, and standard deviation, as well as histograms for numeric columns.
+
+- Data Visualization: Histograms are generated for each numeric column in the CSV file to visualize the data distribution.
+
+- Automatic Deletion: Uploaded CSV files are scheduled for deletion after 10 minutes to manage disk space.
+
+- Styles HTML tables for better visualization.
+
+Requirements
+- Python 3.x
+- Django
+- Pandas
+- NumPy
+- Matplotlib
+- Seaborn
 
 ## Sample CSV File
 
 A sample CSV file for testing purposes is included in the repository.
-File Name = CSV_Demo.csv
+Folder Name = Sample_CSV_Files
+
